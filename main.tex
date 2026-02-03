@@ -46,129 +46,71 @@
 \maketitle
 
 \begin{abstract}
-  This meta-paper describes the style to be used in articles and short papers
-  for SBC conferences. For papers in English, you should add just an abstract
-  while for the papers in Portuguese, we also ask for an abstract in
-  Portuguese (``resumo''). In both cases, abstracts should not have more than
-  10 lines and must be in the first page of the paper.
+  This paper presents an analysis of information security in instant messaging applications, focusing on end-to-end encryption (E2EE). The study centers on the Signal Protocol, widely recognized as the gold standard for secure communications, and compares its native implementation in the Signal app versus its adoption by WhatsApp. Concepts such as the Extended Triple Diffie-Hellman (X3DH) for key agreement, the Double Ratchet algorithm for forward secrecy, and metadata management policies are addressed. The analysis concludes that while cryptographic primitives are identical, privacy levels differ significantly due to metadata handling.
 \end{abstract}
      
 \begin{resumo} 
-  Este meta-artigo descreve o estilo a ser usado na confecção de artigos e
-  resumos de artigos para publicação nos anais das conferências organizadas
-  pela SBC. É solicitada a escrita de resumo e abstract apenas para os artigos
-  escritos em português. Artigos em inglês deverão apresentar apenas abstract.
-  Nos dois casos, o autor deve tomar cuidado para que o resumo (e o abstract)
-  não ultrapassem 10 linhas cada, sendo que ambos devem estar na primeira
-  página do artigo.
+  Este artigo apresenta uma análise sobre a segurança da informação em aplicativos de mensageria instantânea, com foco na implementação de criptografia ponta-a-ponta (E2EE). O estudo concentra-se no Protocolo Signal, reconhecido como padrão de excelência para comunicações seguras, e compara sua implementação nativa no aplicativo Signal versus sua adoção pelo WhatsApp. São abordados conceitos como o Extended Triple Diffie-Hellman (X3DH) para acordo de chaves, o algoritmo Double Ratchet para sigilo futuro e as políticas de gestão de metadados. A análise conclui que, embora as primitivas criptográficas sejam idênticas, os níveis de privacidade diferem significativamente devido ao tratamento de metadados.
 \end{resumo}
 
+\section{Introdução}
+A privacidade e a segurança nas comunicações digitais tornaram-se preocupações centrais na última década. Com bilhões de usuários ativos, aplicativos como WhatsApp e Signal desempenham um papel crucial na troca de informações sensíveis, desde conversas pessoais até segredos corporativos. A base de segurança desses aplicativos reside na criptografia ponta-a-ponta (\textit{End-to-End Encryption} - E2EE), que garante que apenas o remetente e o destinatário possuam as chaves necessárias para decifrar o conteúdo das mensagens, impedindo o acesso por interceptadores e até mesmo pelos provedores do serviço.
 
-\section{General Information}
+O protocolo de criptografia mais amplamente aceito e auditado para esta finalidade é o Protocolo Signal, desenvolvido pela \textit{Open Whisper Systems}. Em 2016, o WhatsApp integrou este protocolo em sua plataforma, levando a E2EE para mais de um bilhão de usuários. No entanto, a segurança da informação não se resume apenas ao algoritmo de cifração do conteúdo, mas abrange todo o ciclo de vida dos dados, incluindo metadados, backups e implementação do cliente.
 
-All full papers and posters (short papers) submitted to some SBC conference,
-including any supporting documents, should be written in English or in
-Portuguese. The format paper should be A4 with single column, 3.5 cm for upper
-margin, 2.5 cm for bottom margin and 3.0 cm for lateral margins, without
-headers or footers. The main font must be Times, 12 point nominal size, with 6
-points of space before each paragraph. Page numbers must be suppressed.
+O objetivo deste trabalho é estudar o funcionamento técnico do Protocolo Signal \cite{signal_docs}, detalhando mecanismos como X3DH e Double Ratchet, e analisar comparativamente as implicações de segurança entre o uso do aplicativo Signal e do WhatsApp, conforme proposto na disciplina de Segurança da Informação.
 
-Full papers must respect the page limits defined by the conference.
-Conferences that publish just abstracts ask for \textbf{one}-page texts.
+\section{Fundamentação Teórica: O Protocolo Signal}
+O Protocolo Signal é um protocolo criptográfico não federado que provê confidencialidade ponta-a-ponta e integridade de mensagens. Ele combina primitivas criptográficas avançadas para garantir propriedades essenciais de segurança.
 
-\section{First Page} \label{sec:firstpage}
+\subsection{Estabelecimento de Sessão: X3DH}
+Para que duas partes (comumente chamadas de Alice e Bob) iniciem uma conversa segura, elas precisam estabelecer uma chave secreta compartilhada. O Protocolo Signal utiliza o algoritmo X3DH (\textit{Extended Triple Diffie-Hellman}).
 
-The first page must display the paper title, the name and address of the
-authors, the abstract in English and ``resumo'' in Portuguese (``resumos'' are
-required only for papers written in Portuguese). The title must be centered
-over the whole page, in 16 point boldface font and with 12 points of space
-before itself. Author names must be centered in 12 point font, bold, all of
-them disposed in the same line, separated by commas and with 12 points of
-space after the title. Addresses must be centered in 12 point font, also with
-12 points of space after the authors' names. E-mail addresses should be
-written using font Courier New, 10 point nominal size, with 6 points of space
-before and 6 points of space after.
+Diferente de uma troca Diffie-Hellman padrão que exige que ambas as partes estejam online, o X3DH permite comunicação assíncrona. O servidor armazena um conjunto de chaves públicas pré-geradas por Bob (Identity Key, Signed Pre Key e One-Time Pre Keys). Quando Alice quer enviar uma mensagem:
+\begin{enumerate}
+    \item Alice solicita as chaves públicas de Bob ao servidor;
+    \item Alice realiza cálculos matemáticos combinando suas chaves privadas com as chaves públicas de Bob para derivar uma chave secreta compartilhada ($SK$);
+    \item Alice envia sua própria chave pública junto com a primeira mensagem cifrada.
+\end{enumerate}
+Isso garante que, mesmo que Bob esteja offline, a chave possa ser acordada e a mensagem enviada \cite{sbseg_article}.
 
-The abstract and ``resumo'' (if is the case) must be in 12 point Times font,
-indented 0.8cm on both sides. The word \textbf{Abstract} and \textbf{Resumo},
-should be written in boldface and must precede the text.
+\subsection{Algoritmo Double Ratchet}
+Após o estabelecimento da sessão, o protocolo utiliza o algoritmo \textit{Double Ratchet} para a troca de mensagens. Este é o componente que fornece as propriedades de \textit{Forward Secrecy} (Sigilo Futuro) e \textit{Post-Compromise Security}. O algoritmo opera atualizando as chaves de cifração a cada mensagem enviada, combinando dois tipos de "catracas" (ratchets):
 
-\section{CD-ROMs and Printed Proceedings}
+\begin{itemize}
+    \item \textbf{Ratchet Simétrica (Cadeia de Hash):} Para cada mensagem enviada dentro de uma mesma "sessão" (enquanto o outro usuário não responde), uma função de derivação de chave (KDF) atualiza a chave de mensagem. Se um atacante descobrir a chave de uma mensagem, ele não consegue calcular as chaves anteriores (devido à irreversibilidade do hash).
+    
+    \item \textbf{Ratchet Diffie-Hellman (DH):} Quando a conversa "vira" (Bob responde a Alice), novas chaves públicas efêmeras são trocadas. Isso introduz nova entropia no sistema. Se um atacante comprometer as chaves atuais, ele não conseguirá derivar as chaves futuras assim que um novo passo do Ratchet DH ocorrer, garantindo a recuperação da segurança (autocura).
+\end{itemize}
 
-In some conferences, the papers are published on CD-ROM while only the
-abstract is published in the printed Proceedings. In this case, authors are
-invited to prepare two final versions of the paper. One, complete, to be
-published on the CD and the other, containing only the first page, with
-abstract and ``resumo'' (for papers in Portuguese).
+\section{Análise Comparativa: Signal vs. WhatsApp}
+Embora ambos os aplicativos utilizem o mesmo protocolo base para cifrar o conteúdo das mensagens (texto, áudio, vídeo), as implementações e o modelo de negócios das empresas responsáveis introduzem diferenças críticas na superfície de ataque e na privacidade.
 
-\section{Sections and Paragraphs}
+\subsection{Gerenciamento de Metadados}
+A distinção mais significativa reside nos metadados — os dados sobre os dados.
+\begin{itemize}
+    \item \textbf{Signal:} Projetado para reter o mínimo de informação. O Signal implementa a tecnologia \textit{Sealed Sender}, onde o remetente envia a mensagem de forma que nem o servidor do Signal sabe quem está enviando, apenas quem deve receber. O servidor armazena apenas a data de criação da conta e a data da última conexão.
+    \item \textbf{WhatsApp:} Pertencente à Meta, o modelo de negócios envolve coleta de dados. Embora a Meta não possa ler o conteúdo (devido à E2EE), ela coleta metadados extensivos: quem fala com quem, frequência das conversas, horários, endereço IP (localização aproximada), dados do dispositivo e foto de perfil. Em uma análise de segurança, esses metadados são suficientes para traçar perfis de comportamento e redes de relacionamento.
+\end{itemize}
 
-Section titles must be in boldface, 13pt, flush left. There should be an extra
-12 pt of space before each title. Section numbering is optional. The first
-paragraph of each section should not be indented, while the first lines of
-subsequent paragraphs should be indented by 1.27 cm.
+\subsection{Segurança de Backups}
+A E2EE protege os dados em trânsito. O armazenamento (dados em repouso) é outro vetor de ataque.
+\begin{itemize}
+    \item \textbf{Signal:} Oferece apenas backups locais armazenados no dispositivo do usuário, criptografados por uma senha numérica (frase de acesso). Isso transfere a responsabilidade da custódia para o usuário, aumentando a segurança contra requisições legais a servidores, mas aumentando o risco de perda de dados caso o usuário esqueça a senha.
+    \item \textbf{WhatsApp:} Tradicionalmente realiza backups em nuvem (Google Drive ou iCloud). Durante anos, esses backups não eram protegidos pela E2EE, sendo vulneráveis a requisições judiciais às provedoras de nuvem. Recentemente, implementou-se a opção de "Backup Criptografado de Ponta-a-Ponta", onde a chave fica com o usuário ou em um cofre de segurança (HSM). No entanto, esta opção não é ativa por padrão, deixando a maioria dos usuários vulnerável.
+\end{itemize}
 
-\subsection{Subsections}
+\subsection{Código Fonte e Auditoria}
+A transparência é vital para a criptografia.
+\begin{itemize}
+    \item \textbf{Signal:} Todo o código (cliente Android/iOS e servidor) é \textit{Open Source}. Isso permite que pesquisadores de segurança auditem o código constantemente em busca de vulnerabilidades ou \textit{backdoors}.
+    \item \textbf{WhatsApp:} É um software proprietário de código fechado. Embora utilize bibliotecas criptográficas auditadas, não há garantia pública de que o código compilado na loja de aplicativos corresponda exatamente à implementação segura, exigindo confiança cega na empresa (Segurança por Obscuridade).
+\end{itemize}
 
-The subsection titles must be in boldface, 12pt, flush left.
+\section{Conclusão}
+A análise realizada demonstra que o Protocolo Signal representa o estado da arte na segurança de mensageria, resolvendo problemas complexos como o sigilo futuro e a comunicação assíncrona através do X3DH e do Double Ratchet. Tanto o Signal quanto o WhatsApp oferecem confidencialidade robusta para o conteúdo das mensagens.
 
-\section{Figures and Captions}\label{sec:figs}
-
-
-Figure and table captions should be centered if less than one line
-(Figure~\ref{fig:exampleFig1}), otherwise justified and indented by 0.8cm on
-both margins, as shown in Figure~\ref{fig:exampleFig2}. The caption font must
-be Helvetica, 10 point, boldface, with 6 points of space before and after each
-caption.
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=.5\textwidth]{fig1.jpg}
-\caption{A typical figure}
-\label{fig:exampleFig1}
-\end{figure}
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=.3\textwidth]{fig2.jpg}
-\caption{This figure is an example of a figure caption taking more than one
-  line and justified considering margins mentioned in Section~\ref{sec:figs}.}
-\label{fig:exampleFig2}
-\end{figure}
-
-In tables, try to avoid the use of colored or shaded backgrounds, and avoid
-thick, doubled, or unnecessary framing lines. When reporting empirical data,
-do not use more decimal digits than warranted by their precision and
-reproducibility. Table caption must be placed before the table (see Table 1)
-and the font used must also be Helvetica, 10 point, boldface, with 6 points of
-space before and after each caption.
-
-\begin{table}[ht]
-\centering
-\caption{Variables to be considered on the evaluation of interaction
-  techniques}
-\label{tab:exTable1}
-\includegraphics[width=.7\textwidth]{table.jpg}
-\end{table}
-
-\section{Images}
-
-All images and illustrations should be in black-and-white, or gray tones,
-excepting for the papers that will be electronically available (on CD-ROMs,
-internet, etc.). The image resolution on paper should be about 600 dpi for
-black-and-white images, and 150-300 dpi for grayscale images.  Do not include
-images with excessive resolution, as they may take hours to print, without any
-visible difference in the result. 
-
-\section{References}
-
-Bibliographic references must be unambiguous and uniform.  We recommend giving
-the author names references in brackets, e.g. \cite{knuth:84},
-\cite{boulic:91}, and \cite{smith:99}.
-
-The references must be listed using 12 point font size, with 6 points of space
-before each reference. The first line of each reference should not be
-indented, while the subsequent should be indented by 0.5 cm.
+Entretanto, para cenários onde a modelagem de ameaça inclui a proteção contra análise de tráfego e metadados, o aplicativo Signal mostra-se superior. O WhatsApp, apesar de seguro no conteúdo, expõe uma superfície de metadados que pode comprometer a privacidade do usuário dependendo do contexto. Conclui-se que a segurança da informação não é apenas uma questão de algoritmos criptográficos, mas também de políticas de implementação e privacidade.
 
 % Estilo de citação da SBC agora localizado na pasta 'bib/'.
 \bibliographystyle{bib/sbc}
