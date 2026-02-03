@@ -1,3 +1,5 @@
+# Artigo final de segurança da informação - Análise da Criptografia Ponta-a-Ponta: Um Estudo sobre o Protocolo Signal e sua Implementação no WhatsApp
+
 # Template SBC 2017 para Tectonic e VS Code
 Adaptação do **template oficial da SBC (2017)** para uso **local**, mantendo a **máxima fidelidade visual** e estrutural ao **oficial** do Overleaf. 
 
