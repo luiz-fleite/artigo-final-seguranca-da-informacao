@@ -21,25 +21,46 @@
 \email{\{luiz.freitas.leite,max.junior,wesley.pontes.barbosa\}@icen.ufpa.br}
 }
 
-\begin{document} 
-
-\maketitle
-
 \begin{abstract}
-  
+  This paper presents an analysis of End-to-End Encryption (E2EE), focusing on the Signal Protocol. It explores its history, cryptographic foundations—such as the Double Ratchet algorithm—and its implementations in global applications. A comparative study is conducted between the original Signal implementation and its integration into WhatsApp, highlighting differences in metadata collection and privacy policies based on official documentation.
 \end{abstract}
      
 \begin{resumo} 
-  
+  Este trabalho apresenta uma análise da Criptografia Ponta-a-Ponta (E2EE), com foco no Protocolo Signal. Explora-se sua história, fundamentos criptográficos — como o algoritmo Double Ratchet — e suas implementações em aplicações globais. Realiza-se um estudo comparativo entre a implementação original do Signal e sua integração no WhatsApp, destacando diferenças na coleta de metadados e políticas de privacidade com base em documentações oficiais.
 \end{resumo}
 
 \section{Introdução}
+A segurança da informação em ambientes de mensageria instantânea evoluiu drasticamente na última década. O Protocolo Signal, desenvolvido pela Signal Messenger LLC, tornou-se a base para a comunicação segura moderna. Este artigo analisa como o protocolo funciona e como grandes empresas, como a Meta, o adaptaram para o WhatsApp, sacrificando parte da privacidade em favor da coleta de metadados.
+
+\section{O Protocolo Signal: Origem e Evolução}
+O Protocolo Signal não nasceu com esse nome. Ele é a evolução do protocolo TextSecure, criado pela Whisper Systems, empresa fundada pelo pesquisador de segurança Moxie Marlinspike. Após a aquisição pelo Twitter e posterior retorno ao modelo open-source, o protocolo foi refinado para o que conhecemos hoje.
+
+Atualmente, o código-fonte está disponível publicamente no GitHub \cite{signal-github} e sua documentação técnica descreve um sistema robusto de criptografia ponta-a-ponta (E2EE) que garante que apenas os interlocutores tenham acesso ao conteúdo das mensagens.
+
+\section{Arquitetura Criptográfica}
+O núcleo do Signal baseia-se em três mecanismos principais:
+\begin{itemize}
+    \item \textbf{X3DH (Extended Triple Diffie-Hellman):} Estabelece uma chave compartilhada entre duas partes que não se conhecem previamente.
+    \item \textbf{Double Ratchet Algorithm:} O "coração" do protocolo. Ele renova as chaves de criptografia a cada mensagem enviada, garantindo a \textit{Forward Secrecy} (se uma chave for roubada, mensagens futuras não são comprometidas) e a \textit{Post-Quantum Resistance} parcial.
+    \item \textbf{Sesame Algorithm:} Gerencia o estado da sessão em dispositivos múltiplos.
+\end{itemize}
+
+\section{Implementações: Signal vs. WhatsApp}
+Embora o WhatsApp utilize o Protocolo Signal desde 2016 por meio de um acordo com a Open Whisper Systems, as implementações divergem em termos de privacidade de dados periféricos.
+
+\subsection{A Questão dos Metadados no WhatsApp}
+Diferente do aplicativo Signal, que minimiza a coleta de dados ao extremo (armazenando apenas a data de criação da conta e o último acesso), o WhatsApp coleta uma vasta gama de metadados. De acordo com os Termos de Serviço da Meta \cite{whatsapp-terms}, os dados coletados incluem:
+\begin{itemize}
+    \item Frequência e duração das interações;
+    \item Identificadores de dispositivo (IP, modelo, sistema operacional);
+    \item Localização aproximada;
+    \item Listas de contatos e logs de transações comerciais.
+\end{itemize}
 
 
 
-% Estilo de citação da SBC agora localizado na pasta 'bib/'.
-\bibliographystyle{bib/sbc}
-% Arquivo de dados bibliográficos (.bib) agora localizado na pasta 'bib/'.
-\bibliography{bib/sbc-template}
+\subsection{Opacidade vs. Transparência}
+Enquanto o Signal é totalmente \textit{open-source}, o WhatsApp utiliza uma implementação proprietária (fechada) do protocolo. Isso significa que, embora o conteúdo da mensagem seja cifrado pelo Signal, o "envelope" que a carrega (os metadados) é processado pela infraestrutura da Meta para fins de análise e publicidade direcionada.
 
-\end{document}
+\section{Conclusão}
+O Protocolo Signal revolucionou a segurança digital. Contudo, sua implementação no WhatsApp demonstra que a criptografia de conteúdo é apenas uma camada da privacidade. A soberania dos dados do usuário depende não apenas do algoritmo, mas da política de metadados da plataforma.
