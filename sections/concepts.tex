@@ -1,0 +1,8 @@
+\section{Conceitos Básicos}
+Para compreender o funcionamento do Protocolo Signal, é necessário definir certas propriedades criptográficas fundamentais que ele visa garantir:
+
+\begin{itemize}
+    \item \textbf{Sigilo Perfeito Encaminhado (Forward Secrecy):} Garante que, se a chave privada de um usuário for roubada hoje, as mensagens trocadas no passado permaneçam seguras. Isso é obtido através da geração de chaves de sessão efêmeras que são descartadas após o uso.
+    \item \textbf{Segurança Pós-Comprometimento (Post-Compromise Security):} Também conhecida como "Break-in Recovery". Refere-se à capacidade do protocolo de restabelecer a segurança após um comprometimento temporário das chaves, através da atualização contínua do material criptográfico.
+    \item \textbf{Diffie-Hellman (DH):} Um método que permite a duas partes, que não têm conhecimento prévio uma da outra, estabelecerem conjuntamente uma chave secreta compartilhada em um canal inseguro.
+\end{itemize}
