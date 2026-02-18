@@ -34,11 +34,7 @@
 \end{resumo}
 
 \section{Introdução}
-A privacidade e a segurança nas comunicações digitais tornaram-se preocupações centrais na última década. Com bilhões de usuários ativos, aplicativos como WhatsApp e Signal desempenham um papel crucial na troca de informações sensíveis, desde conversas pessoais até segredos corporativos. A base de segurança desses aplicativos reside na criptografia ponta-a-ponta (\textit{End-to-End Encryption} - E2EE), que garante que apenas o remetente e o destinatário possuam as chaves necessárias para decifrar o conteúdo das mensagens, impedindo o acesso por interceptadores e até mesmo pelos provedores do serviço.
 
-O protocolo de criptografia mais amplamente aceito e auditado para esta finalidade é o Protocolo Signal, desenvolvido pela \textit{Open Whisper Systems}. Em 2016, o WhatsApp integrou este protocolo em sua plataforma, levando a E2EE para mais de um bilhão de usuários. No entanto, a segurança da informação não se resume apenas ao algoritmo de cifração do conteúdo, mas abrange todo o ciclo de vida dos dados, incluindo metadados, backups e implementação do cliente.
-
-O objetivo deste trabalho é estudar o funcionamento técnico do Protocolo Signal \cite{signal_docs}, detalhando mecanismos como X3DH e Double Ratchet, e analisar comparativamente as implicações de segurança entre o uso do aplicativo Signal e do WhatsApp, conforme proposto na disciplina de Segurança da Informação.
 
 \section{Fundamentação Teórica: O Protocolo Signal}
 O Protocolo Signal é um protocolo criptográfico não federado que provê confidencialidade ponta-a-ponta e integridade de mensagens. Ele combina primitivas criptográficas avançadas para garantir propriedades essenciais de segurança.
