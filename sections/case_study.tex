@@ -26,3 +26,4 @@ O Matrix é um padrão aberto para comunicação descentralizada e federada. Dif
 Olm é uma implementação do algoritmo Double Ratchet do Signal, escrita em C++ e adaptada para a arquitetura do Matrix. No entanto, o algoritmo original do Signal é "pesado" para grupos grandes (complexidade $O(N^2)$), pois exige o estabelecimento de sessões individuais par-a-par.
 
 Para resolver isso, o Matrix introduziu o \textbf{Megolm}. O Megolm sacrifica a propriedade de "auto-cura" imediata (o \textit{break-in recovery} é mais lento) em troca de escalabilidade massiva para grupos com milhares de usuários. No Megolm, cada participante cria uma sessão de saída ("outbound") e compartilha a chave da catraca com os outros participantes via canais seguros Olm \cite{matrix_spec}. Isso permite criptografia eficiente em ambientes federados sem quebrar as propriedades fundamentais de confidencialidade.
+
