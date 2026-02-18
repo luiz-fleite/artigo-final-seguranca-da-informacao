@@ -1,0 +1,20 @@
+
+\section{O Protocolo Signal}
+O Protocolo Signal combina o algoritmo de acordo de chaves X3DH e o algoritmo Double Ratchet. O código é aberto e auditável, hospedado no GitHub da organização \textit{Signal Messenger}, dividido em bibliotecas para o protocolo (\texttt{libsignal}), clientes (Android, iOS e Desktop) e servidor.
+
+\subsection{O Algoritmo Double Ratchet}
+O coração do protocolo é o Double Ratchet (Catraca Dupla). Ele gerencia a rotação contínua das chaves de criptografia de mensagens. O termo "catraca" implica que o processo avança em uma direção e não pode ser revertido (garantindo o \textit{Forward Secrecy}). O algoritmo utiliza duas camadas de derivação de chaves:
+
+\begin{enumerate}
+    \item \textbf{Diffie-Hellman Ratchet:} Ocorre quando há troca de mensagens. As partes renovam suas chaves públicas DH, alterando a "raiz" da cadeia de chaves. Isso fornece a propriedade de auto-cura.
+    \item \textbf{Symmetric-Key Ratchet (Hash):} Ocorre para cada mensagem enviada dentro da mesma sessão DH. Uma função de derivação de chaves (KDF) gera uma nova chave de mensagem a partir da anterior.
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+% \includegraphics[width=0.8\textwidth]{double-ratchet-diagram.png}
+\caption{Diagrama conceitual do Double Ratchet: A KDF Chain deriva chaves de mensagem, enquanto o DH Ratchet atualiza a KDF Chain.}
+\label{fig:ratchet}
+\end{figure}
+
+Essa arquitetura garante que cada mensagem seja criptografada com uma chave única que nunca é reutilizada.
