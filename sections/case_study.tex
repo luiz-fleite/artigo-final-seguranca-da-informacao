@@ -1,0 +1,27 @@
+\section{Estudos de Caso e Implementações}
+
+\subsection{WhatsApp: Privacidade vs. Metadados}
+O WhatsApp é a implementação mais popular do Protocolo Signal. Embora o protocolo seja licenciado sob a GPLv3 (que exigiria que softwares derivados também fossem de código aberto), o WhatsApp mantém seu código fechado (proprietário).
+
+Isso é possível porque o WhatsApp não simplesmente copiou o código do repositório público; eles firmaram um acordo comercial específico com a Open Whisper Systems em 2014 para integrar a biblioteca \textit{libsignal} em sua infraestrutura antes que as obrigações estritas da GPL fossem aplicadas à sua base de código final \cite{marlinspike2016whatsapp}.
+
+\subsubsection{A Polêmica dos Metadados (2021)}
+Embora o conteúdo das mensagens no WhatsApp seja protegido pela mesma criptografia do Signal, o modelo de negócios da Meta (controladora do WhatsApp) baseia-se na exploração de \textbf{metadados}.
+
+Em janeiro de 2021, o WhatsApp atualizou seus Termos de Serviço e Política de Privacidade, gerando reação global e migração em massa para o Signal e Telegram. A atualização explicitou a coleta de dados que não são protegidos pela criptografia ponta-a-ponta. Conforme a seção "Informações que coletamos" da política \cite{whatsapp_privacy_2021}:
+
+\begin{itemize}
+    \item \textbf{Dados de Atividade:} Tempo, frequência e duração das interações.
+    \item \textbf{Grafo Social:} Quem fala com quem (remetente e destinatário).
+    \item \textbf{Informações do Dispositivo:} Modelo de hardware, sistema operacional, nível de bateria, força do sinal e identificadores únicos.
+    \item \textbf{Endereço IP:} Usado para estimar a localização geral.
+\end{itemize}
+
+Ao contrário do aplicativo Signal, que desenhou seu sistema para minimizar o conhecimento do servidor (usando técnicas como \textit{Sealed Sender}), o WhatsApp centraliza metadados, permitindo a construção de perfis comportamentais detalhados dos usuários, mesmo sem ler o conteúdo textual das mensagens.
+
+\subsection{Matrix e Olm/Megolm}
+O Matrix é um padrão aberto para comunicação descentralizada e federada. Diferente do Signal (que é centralizado), o Matrix permite que servidores diferentes conversem entre si. Para garantir segurança nesse ambiente, o Matrix desenvolveu a biblioteca \textbf{Olm}.
+
+Olm é uma implementação do algoritmo Double Ratchet do Signal, escrita em C++ e adaptada para a arquitetura do Matrix. No entanto, o algoritmo original do Signal é "pesado" para grupos grandes (complexidade $O(N^2)$), pois exige o estabelecimento de sessões individuais par-a-par.
+
+Para resolver isso, o Matrix introduziu o \textbf{Megolm}. O Megolm sacrifica a propriedade de "auto-cura" imediata (o \textit{break-in recovery} é mais lento) em troca de escalabilidade massiva para grupos com milhares de usuários. No Megolm, cada participante cria uma sessão de saída ("outbound") e compartilha a chave da catraca com os outros participantes via canais seguros Olm \cite{matrix_spec}. Isso permite criptografia eficiente em ambientes federados sem quebrar as propriedades fundamentais de confidencialidade.
