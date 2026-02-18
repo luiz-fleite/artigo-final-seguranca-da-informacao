@@ -1,4 +1,3 @@
-
 \documentclass[12pt]{article}
 
 \usepackage{styles/sbc-template}
@@ -14,7 +13,7 @@
 
 \sloppy
 
-\title{Artigo final de segurança da informação - Análise da Criptografia Ponta-a-Ponta: Um Estudo sobre o Protocolo Signal e suas implementações}
+\title{Análise da Criptografia Ponta-a-Ponta: Do Axolotl às Implementações Massivas no WhatsApp e Matrix}
 
 \author{Luiz Antônio Lima de Freitas Leite\inst{1}, Max José Lobato Pantoja Junior\inst{1}, \\Wesley Pontes Barbosa\inst{1}}
 
@@ -27,69 +26,86 @@
 \maketitle
 
 \begin{abstract}
-This paper presents an analysis of the Signal Protocol, currently considered the gold standard in end-to-end encryption (E2EE) for instant messaging. We discuss its history, evolution from TextSecure and RedPhone, and its technical characteristics, such as the Double Ratchet algorithm and X3DH key agreement. Furthermore, we analyze its most famous implementation: WhatsApp. We examine the partnership between WhatsApp and Open Whisper Systems and highlight the critical privacy differences between the two platforms, focusing specifically on the aggressive metadata collection practiced by WhatsApp compared to the data minimization approach of the original Signal application.
+This paper analyzes the Signal Protocol, the de facto standard for secure messaging. We explore its evolution from the "Axolotl" ratchet, named after the self-healing salamander, to its current state. Technical concepts such as the Double Ratchet Algorithm and X3DH are detailed. We present case studies on WhatsApp, discussing its closed-source implementation allowed by specific commercial agreements and the controversy surrounding its 2021 privacy policy update regarding metadata collection. Finally, we examine the Matrix protocol and its Olm/Megolm libraries, which adapt Signal's concepts for federated environments and high-performance group chats.
 \end{abstract}
      
 \begin{resumo} 
-Este artigo apresenta uma análise do Protocolo Signal, atualmente considerado o padrão-ouro em criptografia ponta-a-ponta (E2EE) para mensagens instantâneas. Discutimos sua história, evolução a partir do TextSecure e RedPhone, e suas características técnicas, como o algoritmo Double Ratchet e o acordo de chaves X3DH. Além disso, analisamos sua implementação mais famosa: o WhatsApp. Examinamos a parceria entre o WhatsApp e a Open Whisper Systems e destacamos as diferenças críticas de privacidade entre as duas plataformas, focando especificamente na coleta agressiva de metadados praticada pelo WhatsApp em comparação com a abordagem de minimização de dados do aplicativo Signal original.
+Este artigo analisa o Protocolo Signal, o padrão de fato para mensagens seguras. Exploramos sua evolução desde o algoritmo "Axolotl", nomeado em referência à salamandra regenerativa, até seu estado atual. Conceitos técnicos como o algoritmo Double Ratchet e X3DH são detalhados. Apresentamos estudos de caso sobre o WhatsApp, discutindo sua implementação de código fechado permitida por acordos comerciais específicos e a controvérsia em torno da atualização de sua política de privacidade em 2021 referente à coleta de metadados. Por fim, examinamos o protocolo Matrix e suas bibliotecas Olm/Megolm, que adaptam os conceitos do Signal para ambientes federados e grupos de alta performance.
 \end{resumo}
 
 \section{Introdução}
-A comunicação digital segura tornou-se um requisito fundamental na sociedade moderna. Com o aumento da vigilância em massa e violações de dados, a Criptografia Ponta-a-Ponta (E2EE - \textit{End-to-End Encryption}) surgiu como a principal defesa para garantir a confidencialidade das comunicações. Nesse cenário, o Protocolo Signal destaca-se como a tecnologia mais robusta e amplamente auditada para mensagens assíncronas.
+A segurança em comunicações digitais evoluiu de modelos baseados em criptografia de transporte (como TLS/SSL) para a Criptografia Ponta-a-Ponta (E2EE), onde nem mesmo o provedor do serviço tem acesso ao conteúdo. O protagonista dessa mudança é o Protocolo Signal.
 
-O objetivo deste trabalho é desmistificar o funcionamento do Protocolo Signal, explorando suas raízes históricas e seus mecanismos criptográficos avançados, como o \textit{Perfect Forward Secrecy} (Sigilo Perfeito Encaminhado). Além disso, o trabalho analisa criticamente a dicotomia entre a segurança do conteúdo da mensagem e a privacidade do usuário, utilizando o WhatsApp como estudo de caso para demonstrar como uma implementação segura do protocolo pode coexistir com a coleta extensiva de metadados.
+\subsection{História e o Nome Axolotl}
+O protocolo foi desenvolvido pela \textit{Open Whisper Systems}, liderada por Moxie Marlinspike e Trevor Perrin. Inicialmente, o mecanismo central de criptografia não se chamava "Signal", mas sim \textbf{Axolotl}.
 
-\section{História e Evolução do Protocolo}
-O Protocolo Signal não surgiu como um produto único, mas como a evolução de ferramentas de segurança anteriores. Sua história está intrinsecamente ligada ao criptógrafo Moxie Marlinspike e ao pesquisador Trevor Perrin.
+O nome foi escolhido em homenagem ao axolote (\textit{Ambystoma mexicanum}), uma salamandra aquática conhecida por sua impressionante capacidade de auto-regeneração. Essa analogia biológica referia-se à propriedade de "auto-cura" (\textit{self-healing}) do protocolo: se uma chave de sessão for comprometida por um atacante, o algoritmo rotaciona as chaves automaticamente na próxima mensagem, "curando" a segurança da conversa e impedindo que o atacante decifre mensagens futuras \cite{perrin2016double}.
 
-\subsection{Origens: TextSecure e RedPhone}
-Originalmente, a tecnologia foi desenvolvida pela empresa \textit{Whisper Systems}, co-fundada por Marlinspike em 2010. A empresa lançou dois aplicativos para Android: o \textbf{TextSecure}, focado em mensagens de texto criptografadas, e o \textbf{RedPhone}, focado em chamadas de voz criptografadas.
+Em 2016, para simplificar a nomenclatura e evitar confusões de marcas registradas, o nome foi oficialmente alterado para \textbf{Signal Protocol}, unificando a marca do aplicativo e da tecnologia subjacente.
 
-Em 2011, a \textit{Whisper Systems} foi adquirida pelo Twitter. No entanto, o projeto foi relançado como um projeto de código aberto sob a organização \textbf{Open Whisper Systems} (agora sob a égide da \textit{Signal Technology Foundation}). Em 2014, as funcionalidades do TextSecure e do RedPhone foram unificadas, dando origem ao aplicativo Signal como o conhecemos hoje.
+\section{Conceitos Básicos}
+Para compreender o funcionamento do Protocolo Signal, é necessário definir certas propriedades criptográficas fundamentais que ele visa garantir:
 
-\section{O Protocolo Signal: Aspectos Técnicos}
-O Protocolo Signal é um protocolo criptográfico não federado projetado para fornecer confidencialidade de ponta a ponta e integridade de mensagens. O código-fonte do protocolo é aberto e auditável, estando disponível nos repositórios oficiais da organização no GitHub\footnote{\url{https://github.com/signalapp}}.
+\begin{itemize}
+    \item \textbf{Sigilo Perfeito Encaminhado (Forward Secrecy):} Garante que, se a chave privada de um usuário for roubada hoje, as mensagens trocadas no passado permaneçam seguras. Isso é obtido através da geração de chaves de sessão efêmeras que são descartadas após o uso.
+    \item \textbf{Segurança Pós-Comprometimento (Post-Compromise Security):} Também conhecida como "Break-in Recovery". Refere-se à capacidade do protocolo de restabelecer a segurança após um comprometimento temporário das chaves, através da atualização contínua do material criptográfico.
+    \item \textbf{Diffie-Hellman (DH):} Um método que permite a duas partes, que não têm conhecimento prévio uma da outra, estabelecerem conjuntamente uma chave secreta compartilhada em um canal inseguro.
+\end{itemize}
 
-A robustez do protocolo baseia-se na combinação de diversas primitivas criptográficas modernas, detalhadas na documentação técnica oficial \cite{signal_docs}:
+\section{O Protocolo Signal}
+O Protocolo Signal combina o algoritmo de acordo de chaves X3DH e o algoritmo Double Ratchet. O código é aberto e auditável, hospedado no GitHub da organização \textit{Signal Messenger}, dividido em bibliotecas para o protocolo (\texttt{libsignal}), clientes (Android, iOS e Desktop) e servidor.
 
 \subsection{O Algoritmo Double Ratchet}
-O núcleo do protocolo é o algoritmo \textit{Double Ratchet} (Catraca Dupla). Este mecanismo permite que as chaves de criptografia sejam atualizadas constantemente a cada mensagem trocada. Ele combina duas "catracas":
+O coração do protocolo é o Double Ratchet (Catraca Dupla). Ele gerencia a rotação contínua das chaves de criptografia de mensagens. O termo "catraca" implica que o processo avança em uma direção e não pode ser revertido (garantindo o \textit{Forward Secrecy}). O algoritmo utiliza duas camadas de derivação de chaves:
+
+\begin{enumerate}
+    \item \textbf{Diffie-Hellman Ratchet:} Ocorre quando há troca de mensagens. As partes renovam suas chaves públicas DH, alterando a "raiz" da cadeia de chaves. Isso fornece a propriedade de auto-cura.
+    \item \textbf{Symmetric-Key Ratchet (Hash):} Ocorre para cada mensagem enviada dentro da mesma sessão DH. Uma função de derivação de chaves (KDF) gera uma nova chave de mensagem a partir da anterior.
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+% \includegraphics[width=0.8\textwidth]{double-ratchet-diagram.png}
+\caption{Diagrama conceitual do Double Ratchet: A KDF Chain deriva chaves de mensagem, enquanto o DH Ratchet atualiza a KDF Chain.}
+\label{fig:ratchet}
+\end{figure}
+
+Essa arquitetura garante que cada mensagem seja criptografada com uma chave única que nunca é reutilizada.
+
+\section{Estudos de Caso e Implementações}
+
+\subsection{WhatsApp: Privacidade vs. Metadados}
+O WhatsApp é a implementação mais popular do Protocolo Signal. Embora o protocolo seja licenciado sob a GPLv3 (que exigiria que softwares derivados também fossem de código aberto), o WhatsApp mantém seu código fechado (proprietário).
+
+Isso é possível porque o WhatsApp não simplesmente copiou o código do repositório público; eles firmaram um acordo comercial específico com a Open Whisper Systems em 2014 para integrar a biblioteca \textit{libsignal} em sua infraestrutura antes que as obrigações estritas da GPL fossem aplicadas à sua base de código final \cite{marlinspike2016whatsapp}.
+
+\subsubsection{A Polêmica dos Metadados (2021)}
+Embora o conteúdo das mensagens no WhatsApp seja protegido pela mesma criptografia do Signal, o modelo de negócios da Meta (controladora do WhatsApp) baseia-se na exploração de \textbf{metadados}.
+
+Em janeiro de 2021, o WhatsApp atualizou seus Termos de Serviço e Política de Privacidade, gerando reação global e migração em massa para o Signal e Telegram. A atualização explicitou a coleta de dados que não são protegidos pela criptografia ponta-a-ponta. Conforme a seção "Informações que coletamos" da política \cite{whatsapp_privacy_2021}:
+
 \begin{itemize}
-    \item \textbf{Diffie-Hellman Ratchet:} Atualiza as chaves baseada na troca de novas chaves públicas Diffie-Hellman junto com as mensagens.
-    \item \textbf{Hash Ratchet:} Deriva novas chaves a partir das anteriores usando uma função de hash (KDF), garantindo que, mesmo se uma chave for comprometida, as mensagens futuras (\textit{Post-Compromise Security}) e passadas (\textit{Forward Secrecy}) permaneçam seguras \cite{cohn2017formal}.
+    \item \textbf{Dados de Atividade:} Tempo, frequência e duração das interações.
+    \item \textbf{Grafo Social:} Quem fala com quem (remetente e destinatário).
+    \item \textbf{Informações do Dispositivo:} Modelo de hardware, sistema operacional, nível de bateria, força do sinal e identificadores únicos.
+    \item \textbf{Endereço IP:} Usado para estimar a localização geral.
 \end{itemize}
 
-\subsection{Acordo de Chaves X3DH}
-Para iniciar uma conversa de forma assíncrona (quando um usuário está offline), o protocolo utiliza o \textit{Extended Triple Diffie-Hellman} (X3DH). Isso permite que dois usuários estabeleçam uma chave secreta compartilhada mutuamente autenticada, baseada em chaves pré-publicadas (PreKeys) no servidor, sem que o servidor tenha acesso ao conteúdo da chave final.
+Ao contrário do aplicativo Signal, que desenhou seu sistema para minimizar o conhecimento do servidor (usando técnicas como \textit{Sealed Sender}), o WhatsApp centraliza metadados, permitindo a construção de perfis comportamentais detalhados dos usuários, mesmo sem ler o conteúdo textual das mensagens.
 
-\section{Implementações e o Caso WhatsApp}
-Devido à sua robustez e licença GPLv3, o Protocolo Signal tornou-se o padrão da indústria, sendo adotado não apenas pelo aplicativo Signal, mas também pelo Google (em seu modo RCS), Facebook Messenger (em conversas secretas) e, mais notavelmente, pelo WhatsApp.
+\subsection{Matrix e Olm/Megolm}
+O Matrix é um padrão aberto para comunicação descentralizada e federada. Diferente do Signal (que é centralizado), o Matrix permite que servidores diferentes conversem entre si. Para garantir segurança nesse ambiente, o Matrix desenvolveu a biblioteca \textbf{Olm}.
 
-\subsection{Adoção pelo WhatsApp}
-Em 2014, logo após ser adquirido pelo Facebook (atual Meta), o WhatsApp firmou uma parceria com a Open Whisper Systems para integrar o protocolo em sua plataforma. O processo foi concluído em abril de 2016, ativando a criptografia ponta-a-ponta por padrão para mais de um bilhão de usuários na época \cite{whatsapp_whitepaper}.
+Olm é uma implementação do algoritmo Double Ratchet do Signal, escrita em C++ e adaptada para a arquitetura do Matrix. No entanto, o algoritmo original do Signal é "pesado" para grupos grandes (complexidade $O(N^2)$), pois exige o estabelecimento de sessões individuais par-a-par.
 
-Tecnicamente, o WhatsApp utiliza a mesma base criptográfica do aplicativo Signal. Isso significa que o conteúdo das mensagens (texto, áudio, vídeo) é matematicamente inacessível para a Meta ou terceiros. No entanto, a segurança do conteúdo não implica na privacidade total do usuário.
-
-\subsection{Diferenças Críticas: A Questão dos Metadados}
-Embora o WhatsApp utilize o Protocolo Signal para cifrar o "payload" (conteúdo), o modelo de negócios da Meta baseia-se na coleta de dados. A principal diferença entre o aplicativo Signal original e o WhatsApp reside nos \textbf{metadados} — os dados sobre os dados.
-
-Enquanto o Signal armazena apenas o dia da criação da conta e a data do último login, o WhatsApp coleta e associa ao usuário uma vasta gama de metadados não criptografados. Conforme descrito em sua Política de Privacidade \cite{whatsapp_privacy}, o WhatsApp coleta:
-
-\begin{itemize}
-    \item \textbf{Identificadores:} Números de telefone do usuário e de todos os seus contatos (o grafo social).
-    \item \textbf{Dados de Uso:} Tempo, frequência e duração das interações.
-    \item \textbf{Informações do Dispositivo:} Modelo de hardware, sistema operacional, nível de bateria, força do sinal e identificadores únicos de dispositivo.
-    \item \textbf{Endereço IP e Localização:} Dados de localização aproximada baseados na conexão.
-    \item \textbf{Dados de Transação:} Se o usuário utiliza serviços de pagamento no app.
-    \item \textbf{Informações de Grupo:} Nomes de grupos e fotos de perfil (que não são criptografados ponta-a-ponta da mesma forma que as mensagens).
-\end{itemize}
-
-Essa coleta permite que a Meta construa perfis comportamentais detalhados, sabendo "quem fala com quem, quando e de onde", mesmo sem ler o conteúdo das mensagens. No aplicativo Signal, a arquitetura é desenhada para "Sealed Sender" (Remetente Selado), ocultando até mesmo quem está enviando a mensagem dos servidores de roteamento sempre que possível.
+Para resolver isso, o Matrix introduziu o \textbf{Megolm}. O Megolm sacrifica a propriedade de "auto-cura" imediata (o \textit{break-in recovery} é mais lento) em troca de escalabilidade massiva para grupos com milhares de usuários. No Megolm, cada participante cria uma sessão de saída ("outbound") e compartilha a chave da catraca com os outros participantes via canais seguros Olm \cite{matrix_spec}. Isso permite criptografia eficiente em ambientes federados sem quebrar as propriedades fundamentais de confidencialidade.
 
 \section{Conclusão}
-O Protocolo Signal representa o estado da arte na segurança de comunicações móveis. Sua adoção pelo WhatsApp foi um marco histórico que democratizou a criptografia forte para bilhões de pessoas. Contudo, este estudo evidencia que a criptografia ponta-a-ponta, embora vital para a confidencialidade do conteúdo, não protege os metadados. A comparação entre as implementações do Signal e do WhatsApp demonstra que a privacidade real depende tanto da robustez dos algoritmos quanto das políticas de coleta de dados da organização que detém a infraestrutura.
+A evolução do algoritmo Axolotl para o onipresente Protocolo Signal redefiniu a segurança na internet. A tecnologia provou ser robusta contra adversários estatais e corporativos no que tange à confidencialidade do conteúdo.
 
-\bibliography{bib/sbc-template}
+Entretanto, a análise das implementações do WhatsApp e Matrix revela que o protocolo é apenas uma peça do quebra-cabeça. No caso do WhatsApp, a segurança criptográfica convive com a vigilância de metadados sancionada pelos termos de uso. No caso do Matrix, vemos a adaptação do protocolo (Megolm) para garantir soberania de dados através da federação. Conclui-se que a "privacidade" é um conceito mais amplo que a "criptografia", dependendo tanto da matemática dos algoritmos quanto da ética das implementações.
+
 \bibliographystyle{bib/sbc}
+\bibliography{bib/sbc-template}
 
 \end{document}
