@@ -11,14 +11,14 @@ A \textbf{criptografia assimétrica} (ou de chave pública) resolve esse problem
 
 \subsection{Diffie-Hellman e Curvas Elípticas (ECDH)}
 
-O protocolo Diffie-Hellman (DH), proposto em 1976, permite que duas partes estabeleçam uma chave secreta compartilhada por meio de um canal completamente público, sem qualquer conhecimento prévio uma da outra. A intuição por trás do protocolo pode ser ilustrada por uma analogia com cores: cada parte escolhe uma cor secreta e a combina com uma cor pública comum; o resultado final, obtido por caminhos distintos por cada lado, é idêntico, mas um observador externo vê apenas as cores públicas e não consegue reproduzir a mistura sem conhecer os segredos individuais \cite{antunes2018signal}.
+O protocolo Diffie-Hellman (DH), proposto em 1976, permite que duas partes estabeleçam uma chave secreta compartilhada por meio de um canal completamente público, sem qualquer conhecimento prévio uma da outra. A intuição por trás do protocolo pode ser ilustrada por uma analogia com cores: cada parte escolhe uma cor secreta e a combina com uma cor pública comum; o resultado final, obtido por caminhos distintos por cada lado, é idêntico, mas um observador externo vê apenas as cores públicas e não consegue reproduzir a mistura sem conhecer os segredos individuais.
 
 Formalmente, considere um grupo cíclico $G$ de ordem prima $q$ e um gerador $g$. Alice escolhe um inteiro aleatório $a$ (sua chave privada) e calcula $A = g^a \pmod p$ (sua chave pública). Bob escolhe analogamente um inteiro $b$ e calcula $B = g^b \pmod p$. O segredo compartilhado $S$ é então calculado independentemente por ambas as partes:
 \begin{equation}
     S = B^a = (g^b)^a = g^{ba} = (g^a)^b = A^b \pmod p
 \end{equation}
 
-A segurança do DH clássico repousa sobre a dificuldade computacional do \textit{problema do logaritmo discreto}. O Protocolo Signal utiliza uma variante moderna denominada \textbf{ECDH} (\textit{Elliptic-Curve Diffie-Hellman}), que opera sobre grupos de pontos em curvas elípticas. Nesse contexto, a operação de exponenciação é substituída pela multiplicação de escalares por pontos na curva, mantendo a mesma lógica de segurança. O ECDH oferece o mesmo nível de segurança do DH tradicional com chaves significativamente menores, o que é essencial para dispositivos móveis com recursos de processamento e bateria limitados.
+A segurança do DH clássico repousa sobre a dificuldade computacional do \textit{problema do logaritmo discreto}. O Protocolo Signal utiliza uma variante moderna denominada \textbf{ECDH} (\textit{Elliptic-Curve Diffie-Hellman}), que opera sobre grupos de pontos em curvas elípticas. Nesse contexto, a operação de exponenciação é substituída pela multiplicação de escalares por pontos na curva, mantendo a mesma lógica de segurança. O ECDH oferece o mesmo nível de segurança do DH tradicional com chaves significativamente menores, o que é essencial para dispositivos móveis com recursos de processamento e bateria limitados \cite{antunes2018signal}.
 
 \subsection{Funções de Derivação de Chaves (KDF)}
 
