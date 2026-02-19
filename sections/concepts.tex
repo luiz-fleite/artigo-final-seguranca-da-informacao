@@ -5,19 +5,29 @@ Para compreender o funcionamento do Protocolo Signal, é necessário apresentar 
 
 \subsection{Criptografia Simétrica e Assimétrica}
 
-Na \textbf{criptografia simétrica}, a mesma chave é utilizada para cifrar e para decifrar uma mensagem. O desafio fundamental desse modelo é o \textit{problema da distribuição de chaves}: como dois interlocutores combinam uma chave secreta sem que um adversário que monitore o canal consiga interceptá-la?
+Na \textbf{criptografia simétrica}, a mesma chave é utilizada para cifrar e para decifrar uma mensagem. Matematicamente, dada uma mensagem $m$ e uma chave secreta $k$, a cifra $c$ é obtida por uma função de encriptação $E$, tal que $c = E_k(m)$. A recuperação da mensagem original é feita pela função inversa de decriptação $D$, onde $m = D_k(c)$. O desafio fundamental desse modelo é o \textit{problema da distribuição de chaves}: como dois interlocutores combinam uma chave secreta sem que um adversário que monitore o canal consiga interceptá-la?
 
-A \textbf{criptografia assimétrica} (ou de chave pública) resolve esse problema. Cada parte possui um par de chaves matematicamente relacionadas: uma chave pública, que pode ser distribuída abertamente, e uma chave privada, mantida em segredo. Uma mensagem cifrada com a chave pública de um destinatário só pode ser decifrada com sua chave privada correspondente. O Protocolo Signal utiliza ambos os modelos em conjunto: a criptografia assimétrica para o estabelecimento seguro de chaves de sessão, e a criptografia simétrica para a cifragem eficiente das mensagens propriamente ditas \cite{antunes2018signal}.
+A \textbf{criptografia assimétrica} (ou de chave pública) resolve esse problema utilizando um par de chaves $(pk, sk)$, onde $pk$ é a chave pública e $sk$ a privada. Uma mensagem cifrada com a chave pública de um destinatário ($c = E_{pk}(m)$) só pode ser decifrada com sua chave privada correspondente ($m = D_{sk}(c)$). O Protocolo Signal utiliza ambos os modelos em conjunto: a criptografia assimétrica para o estabelecimento seguro de chaves de sessão, e a criptografia simétrica para a cifragem eficiente das mensagens propriamente ditas \cite{antunes2018signal}.
 
 \subsection{Diffie-Hellman e Curvas Elípticas (ECDH)}
 
 O protocolo Diffie-Hellman (DH), proposto em 1976, permite que duas partes estabeleçam uma chave secreta compartilhada por meio de um canal completamente público, sem qualquer conhecimento prévio uma da outra. A intuição por trás do protocolo pode ser ilustrada por uma analogia com cores: cada parte escolhe uma cor secreta e a combina com uma cor pública comum; o resultado final, obtido por caminhos distintos por cada lado, é idêntico, mas um observador externo vê apenas as cores públicas e não consegue reproduzir a mistura sem conhecer os segredos individuais \cite{antunes2018signal}.
 
-A segurança do DH clássico repousa sobre a dificuldade computacional do \textit{problema do logaritmo discreto}. O Protocolo Signal utiliza uma variante moderna denominada \textbf{ECDH} (\textit{Elliptic-Curve Diffie-Hellman}), que opera sobre grupos de pontos em curvas elípticas. O ECDH oferece o mesmo nível de segurança do DH tradicional com chaves significativamente menores, o que é essencial para dispositivos móveis com recursos de processamento e bateria limitados.
+Formalmente, considere um grupo cíclico $G$ de ordem prima $q$ e um gerador $g$. Alice escolhe um inteiro aleatório $a$ (sua chave privada) e calcula $A = g^a \pmod p$ (sua chave pública). Bob escolhe analogamente um inteiro $b$ e calcula $B = g^b \pmod p$. O segredo compartilhado $S$ é então calculado independentemente por ambas as partes:
+\begin{equation}
+    S = B^a = (g^b)^a = g^{ba} = (g^a)^b = A^b \pmod p
+\end{equation}
+
+A segurança do DH clássico repousa sobre a dificuldade computacional do \textit{problema do logaritmo discreto}. O Protocolo Signal utiliza uma variante moderna denominada \textbf{ECDH} (\textit{Elliptic-Curve Diffie-Hellman}), que opera sobre grupos de pontos em curvas elípticas. Nesse contexto, a operação de exponenciação é substituída pela multiplicação de escalares por pontos na curva, mantendo a mesma lógica de segurança. O ECDH oferece o mesmo nível de segurança do DH tradicional com chaves significativamente menores, o que é essencial para dispositivos móveis com recursos de processamento e bateria limitados.
 
 \subsection{Funções de Derivação de Chaves (KDF)}
 
 Uma \textbf{Função de Derivação de Chaves} (KDF, do inglês \textit{Key Derivation Function}) é um componente criptográfico que, a partir de um material de entrada (como uma chave compartilhada obtida via ECDH), produz uma ou mais chaves com as propriedades estatísticas desejadas. O Protocolo Signal emprega especificamente o \textbf{HKDF} (\textit{HMAC-based Key Derivation Function}) \cite{perrin2016double}.
+
+Matematicamente, o HKDF pode ser descrito como uma função que recebe um material de chave de entrada ($KI$), um ``sal'' opcional e informações de contexto, produzindo uma chave criptograficamente forte ($KO$):
+\begin{equation}
+    KO = \text{HKDF}(salt, KI, info)
+\end{equation}
 
 A propriedade central explorada pelo protocolo é a \textbf{unidirecionalidade}: dado o resultado de uma KDF, é computacionalmente inviável reconstituir o material de entrada. Essa característica é o que permite ao Double Ratchet, detalhado na Seção~3, girar as chaves continuamente sem que estados anteriores sejam comprometidos.
 
