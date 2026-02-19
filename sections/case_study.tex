@@ -1,32 +1,62 @@
-
 \section{Estudos de Caso e Implementações}
+
+\subsection{WhatsApp: O Paradoxo do Código Fechado e a Implementação do Signal}
 \textcolor{red}{[WESLEY]}
-\textcolor{red}{[explicar como o whatsapp usa o signal, o fato de ser codigo fechado impede de entrar em detalhes muito profundos, mas e essencial destacar a coleta de metadados do whatsapp, faça uma comparacao antes e depois dos termos de uso de 2021, para a apresentacao considere um exemplo pratico como "se houvesse uma ordem judicial o que eles poderiam entregar? antes e depois" e de uma atenção especial para citar a fonte desses termos do whatsapp, pode ser o link do site deles...]}
-\subsection{WhatsApp: Privacidade vs. Metadados}
-O WhatsApp é a implementação mais popular do Protocolo Signal. Embora o protocolo seja licenciado sob a GPLv3 (que exigiria que softwares derivados também fossem de código aberto), o WhatsApp mantém seu código fechado (proprietário).
+O WhatsApp é a implementação mais popular do Protocolo Signal. Embora o protocolo original seja licenciado sob a GPLv3 (que exigiria que softwares derivados também fossem de código aberto), o WhatsApp mantém seu código fechado de forma proprietária. Isso foi viabilizado por um acordo comercial firmado em 2014 com a Open Whisper Systems, permitindo a integração da biblioteca \textit{libsignal} em sua infraestrutura antes que as obrigações estritas da GPL fossem aplicadas à sua base de código final \cite{marlinspike2016whatsapp}.
 
-Isso é possível porque o WhatsApp não simplesmente copiou o código do repositório público; eles firmaram um acordo comercial específico com a Open Whisper Systems em 2014 para integrar a biblioteca \textit{libsignal} em sua infraestrutura antes que as obrigações estritas da GPL fossem aplicadas à sua base de código final \cite{marlinspike2016whatsapp}.
+O fato de o aplicativo ser de código fechado (\textit{closed-source}) cria um paradoxo técnico. Enquanto o Protocolo Signal é de código aberto e possui sua matemática amplamente auditada pela comunidade de segurança, a sua implementação no WhatsApp exige confiança na Meta de que o aplicativo não possui "portas dos fundos" (\textit{backdoors}) projetadas para copiar mensagens antes da etapa de criptografia. Embora auditorias independentes atestem a integridade da criptografia de conteúdo da plataforma, essa arquitetura fechada serve diretamente ao modelo de negócios da empresa.
 
-\subsubsection{A Polêmica dos Metadados (2021)}
-Embora o conteúdo das mensagens no WhatsApp seja protegido pela mesma criptografia do Signal, o modelo de negócios da Meta (controladora do WhatsApp) baseia-se na exploração de \textbf{metadados}.
+\subsubsection{A Engenharia de Implementação do Signal no WhatsApp}
+Para atender a bilhões de usuários sem comprometer a eficiência dos dispositivos móveis ou consumir excessivamente a largura de banda, o WhatsApp realiza adaptações estruturais no uso do Signal. A arquitetura técnica resolve problemas práticos de comunicação assíncrona, transferência de arquivos pesados e escalabilidade em grupos:
 
-Em janeiro de 2021, o WhatsApp atualizou seus Termos de Serviço e Política de Privacidade, gerando reação global e migração em massa para o Signal e Telegram. A atualização explicitou a coleta de dados que não são protegidos pela criptografia ponta-a-ponta. Conforme a seção "Informações que coletamos" da política \cite{whatsapp_privacy_2021}:
+\paragraph{O Repositório de Chaves (Servidor)}
+O servidor do WhatsApp atua como um intermediário na troca de chaves, comparável a um "cartório digital". Para o funcionamento do protocolo X3DH (necessário para o envio de mensagens a usuários \textit{offline}), o servidor armazena as chaves públicas dos usuários: a Chave de Identidade, uma Chave Pré-assinada e lotes de Chaves de Uso Único. Ao iniciar uma conversa, o servidor entrega ao remetente uma Chave de Uso Único do destinatário e a descarta. O servidor facilita o encontro das chaves públicas, mas não possui acesso às chaves privadas, que permanecem restritas aos dispositivos.
 
+\paragraph{Envio de Mídia e Arquivos}
+O algoritmo \textit{Double Ratchet} não é otimizado para criptografar arquivos grandes diretamente. Para contornar essa limitação, o WhatsApp adota uma abordagem híbrida:
+\begin{enumerate}
+    \item \textbf{Criptografia Simétrica:} O aplicativo gera uma chave simétrica temporária e aleatória (padrão AES-256) e criptografa o arquivo de mídia.
+    \item \textbf{Armazenamento em Nuvem:} O arquivo cifrado é enviado para os servidores da Meta.
+    \item \textbf{Entrega Segura:} A chave temporária que destranca o arquivo, junto com seu link de acesso, é transmitida ao destinatário usando o canal criptografado de ponta-a-ponta do Protocolo Signal.
+    \item \textbf{Acesso:} O destinatário recebe a mensagem segura, baixa o arquivo criptografado do servidor e utiliza a chave temporária para revelá-lo localmente.
+\end{enumerate}
+
+\paragraph{O Desafio da Escalabilidade em Grupos (\textit{Sender Keys})}
+Para evitar a ineficiência de criptografar e transmitir a mesma mensagem individualmente para centenas de participantes de um grupo, a implementação utiliza o componente \textit{Sender Keys} (Chaves de Remetente). Quando um usuário envia sua primeira mensagem em um grupo, ele gera uma \textit{Sender Key} e a distribui individualmente para os demais membros utilizando sessões seguras par-a-par padrão do Signal. A partir de então, as mensagens destinadas ao grupo são criptografadas apenas uma vez utilizando essa chave, e o servidor se encarrega de distribuir a mensagem cifrada. Caso um membro saia do grupo, os participantes remanescentes rotacionam suas chaves para impedir acessos futuros pelo ex-membro.
+
+\paragraph{Chamadas de Voz e Vídeo (SRTP)}
+Para a comunicação em tempo real, o Protocolo Signal é utilizado apenas na fase de estabelecimento da chamada, negociando de forma segura uma chave secreta entre os dispositivos. Após o atendimento, a transmissão contínua de mídia é delegada ao protocolo SRTP (\textit{Secure Real-time Transport Protocol}), que utiliza a chave acordada para criptografar o fluxo de voz e vídeo com baixa latência.
+
+\subsubsection{O Tesouro da Meta: A Coleta de Metadados}
+Apesar de o conteúdo das mensagens no WhatsApp ser rigorosamente protegido pela criptografia supracitada, o modelo de negócios da Meta baseia-se fortemente na exploração de metadados. Em uma analogia simples, enquanto a criptografia protege a "carta" dentro do envelope, os metadados representam todas as informações escritas do lado de fora.
+
+Ao contrário do aplicativo nativo do Signal, que desenhou seu sistema para minimizar o conhecimento do servidor através de técnicas como \textit{Sealed Sender}, o WhatsApp centraliza os metadados. A plataforma rastreia com precisão com quem o usuário se comunica, a frequência das interações, os horários de atividade, a localização aproximada e os dados telemétricos do aparelho. Ao cruzar esses dados com os bancos do Facebook e do Instagram, a Meta consegue traçar perfis comportamentais detalhados e valiosos para o direcionamento de anúncios.
+
+\subsubsection{A Polêmica Atualização de 2021: O Antes e o Depois}
+Em janeiro de 2021, o WhatsApp atualizou seus Termos de Serviço e Política de Privacidade, gerando uma reação global que resultou em uma migração em massa para aplicativos concorrentes. A polêmica foi cercada de desinformação: o WhatsApp não passaria a ler as mensagens, mas sim tornaria explícita a coleta e a integração de dados não protegidos pela criptografia \cite{whatsapp_privacy_2021}.
+
+A mudança representou um marco nas políticas de compartilhamento:
 \begin{itemize}
-    \item \textbf{Dados de Atividade:} Tempo, frequência e duração das interações.
-    \item \textbf{Grafo Social:} Quem fala com quem (remetente e destinatário).
-    \item \textbf{Informações do Dispositivo:} Modelo de hardware, sistema operacional, nível de bateria, força do sinal e identificadores únicos.
-    \item \textbf{Endereço IP:} Usado para estimar a localização geral.
+    \item \textbf{Antes de 2021:} Quando a integração com o Facebook começou a se intensificar, os usuários tiveram uma janela de tempo para realizar o \textit{opt-out}, recusando o uso de seus dados para anúncios.
+    \item \textbf{A partir de 2021:} A aceitação da nova política tornou-se obrigatória. O foco principal foram as interações com Contas Comerciais (WhatsApp Business). A política estabeleceu que, ao interagir com empresas que utilizam os serviços de hospedagem da Meta, a própria plataforma teria acesso aos metadados dessas interações para gerenciar mensagens e direcionar anúncios personalizados no ecossistema da empresa.
 \end{itemize}
 
-Ao contrário do aplicativo Signal, que desenhou seu sistema para minimizar o conhecimento do servidor (usando técnicas como \textit{Sealed Sender}), o WhatsApp centraliza metadados, permitindo a construção de perfis comportamentais detalhados dos usuários, mesmo sem ler o conteúdo textual das mensagens.
+Conforme detalhado na seção "Informações que coletamos" da política de privacidade atualizada, os metadados retidos incluem dados de atividade, grafo social (quem interage com quem), informações do dispositivo e endereço IP.
+
+\subsubsection{Exemplo Prático: Resposta a Ordens Judiciais}
+A distinção entre o sigilo do conteúdo e a exposição do comportamento torna-se evidente em cenários de requisições judiciais. Caso um juiz determine que a Meta entregue os dados de um usuário investigado, a resposta técnica varia drasticamente:
+
+O texto das mensagens, áudios, fotos e vídeos nunca pôde ser entregue, pois os servidores armazenam apenas códigos ilegíveis. Antes das integrações mais profundas da Meta, as informações fornecidas à justiça limitavam-se a dados cadastrais básicos (número de telefone, \textit{last seen} e endereço IP). 
+
+No cenário atual, a riqueza dos metadados permite a entrega de informações táticas fundamentais. A Meta pode fornecer a teia de contatos do investigado (volume e registros de mensagens), dados de grupos (informações de todos os membros associados) e vínculos sociais com perfis do Facebook e Instagram. Consequentemente, mesmo sem acesso ao teor das conversas, as autoridades conseguem mapear de forma cristalina a rede de relacionamentos de uma investigação.
 
 \subsection{Matrix e Olm/Megolm}
 \textcolor{red}{[LA - WESLEY]}
-\textcolor{red}{[aqui é bom fazer uma menção honrosa para essa implementação promissora do signal pela Matrix, o olm é a implementação deles do protocolo signal como ele é, mas eles adicionam ao protocolo mais propriedades com o megolm, que serve para garantir a mesma segurança (na pratica) para grupos gigantescos nivel discord, mas hoje esta com a implementacao atrasada porque eles reescreveram todo o codigo deles em rust ha pouco tempo, mas vamos deixar isso no nosso texto mesmo que nao entre na apresentacao, e vamos resumir essa menção se nao der tempo de colocar diagram]}
-O Matrix é um padrão aberto para comunicação descentralizada e federada. Diferente do Signal (que é centralizado), o Matrix permite que servidores diferentes conversem entre si. Para garantir segurança nesse ambiente, o Matrix desenvolveu a biblioteca \textbf{Olm}.
+\textcolor{red}{[aqui é bom fazer uma menção honrosa para essa implementação promissora do signal pela Matrix...]}
+O Matrix é um padrão aberto para comunicação descentralizada e federada. Diferente do Signal (que é centralizado), o Matrix permite que servidores diferentes conversem entre si.
 
-Olm é uma implementação do algoritmo Double Ratchet do Signal, escrita em C++ e adaptada para a arquitetura do Matrix. No entanto, o algoritmo original do Signal é "pesado" para grupos grandes (complexidade $O(N^2)$), pois exige o estabelecimento de sessões individuais par-a-par.
+Para garantir segurança nesse ambiente, o Matrix desenvolveu a biblioteca \textbf{Olm}. Olm é uma implementação do algoritmo Double Ratchet do Signal, escrita em C++ e adaptada para a arquitetura do Matrix.
 
-Para resolver isso, o Matrix introduziu o \textbf{Megolm}. O Megolm sacrifica a propriedade de "auto-cura" imediata (o \textit{break-in recovery} é mais lento) em troca de escalabilidade massiva para grupos com milhares de usuários. No Megolm, cada participante cria uma sessão de saída ("outbound") e compartilha a chave da catraca com os outros participantes via canais seguros Olm \cite{matrix_spec}. Isso permite criptografia eficiente em ambientes federados sem quebrar as propriedades fundamentais de confidencialidade.
+No entanto, o algoritmo original do Signal é "pesado" para grupos grandes (complexidade $O(N^2)$), pois exige o estabelecimento de sessões individuais par-a-par. Para resolver isso, o Matrix introduziu o \textbf{Megolm}. O Megolm sacrifica a propriedade de "auto-cura" imediata em troca de escalabilidade massiva para grupos com milhares de usuários.
 
+No Megolm, cada participante cria uma sessão de saída ("outbound") e compartilha a chave da catraca com os outros participantes via canais seguros Olm \cite{matrix_spec}. Isso permite criptografia eficiente em ambientes federados sem quebrar as propriedades fundamentais de confidencialidade.
