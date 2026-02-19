@@ -1,11 +1,38 @@
 
 \section{Conceitos Básicos}
-\textcolor{red}{[MAX]}
-\textcolor{red}{[foca em explicar todas as propriedades relevantes pro protocolo signal, verifica se vale a pena adicionar aqui tambem o Sealed Sender que o whatsapp nao usa (ou nao usa mais)]}
-Para compreender o funcionamento do Protocolo Signal, é necessário definir certas propriedades criptográficas fundamentais que ele visa garantir:
 
-\begin{itemize}
-    \item \textbf{Sigilo Perfeito Encaminhado (Forward Secrecy):} Garante que, se a chave privada de um usuário for roubada hoje, as mensagens trocadas no passado permaneçam seguras. Isso é obtido através da geração de chaves de sessão efêmeras que são descartadas após o uso.
-    \item \textbf{Segurança Pós-Comprometimento (Post-Compromise Security):} Também conhecida como "Break-in Recovery". Refere-se à capacidade do protocolo de restabelecer a segurança após um comprometimento temporário das chaves, através da atualização contínua do material criptográfico.
-    \item \textbf{Diffie-Hellman (DH):} Um método que permite a duas partes, que não têm conhecimento prévio uma da outra, estabelecerem conjuntamente uma chave secreta compartilhada em um canal inseguro.
-\end{itemize}
+Para compreender o funcionamento do Protocolo Signal, é necessário apresentar os fundamentos criptográficos sobre os quais ele é construído. Esta seção percorre esses conceitos progressivamente, partindo da distinção entre os modelos de criptografia até as propriedades de segurança de alto nível que o protocolo visa garantir.
+
+\subsection{Criptografia Simétrica e Assimétrica}
+
+Na \textbf{criptografia simétrica}, a mesma chave é utilizada para cifrar e para decifrar uma mensagem. O desafio fundamental desse modelo é o \textit{problema da distribuição de chaves}: como dois interlocutores combinam uma chave secreta sem que um adversário que monitore o canal consiga interceptá-la?
+
+A \textbf{criptografia assimétrica} (ou de chave pública) resolve esse problema. Cada parte possui um par de chaves matematicamente relacionadas: uma chave pública, que pode ser distribuída abertamente, e uma chave privada, mantida em segredo. Uma mensagem cifrada com a chave pública de um destinatário só pode ser decifrada com sua chave privada correspondente. O Protocolo Signal utiliza ambos os modelos em conjunto: a criptografia assimétrica para o estabelecimento seguro de chaves de sessão, e a criptografia simétrica para a cifragem eficiente das mensagens propriamente ditas \cite{antunes2018signal}.
+
+\subsection{Diffie-Hellman e Curvas Elípticas (ECDH)}
+
+O protocolo Diffie-Hellman (DH), proposto em 1976, permite que duas partes estabeleçam uma chave secreta compartilhada por meio de um canal completamente público, sem qualquer conhecimento prévio uma da outra. A intuição por trás do protocolo pode ser ilustrada por uma analogia com cores: cada parte escolhe uma cor secreta e a combina com uma cor pública comum; o resultado final, obtido por caminhos distintos por cada lado, é idêntico, mas um observador externo vê apenas as cores públicas e não consegue reproduzir a mistura sem conhecer os segredos individuais \cite{antunes2018signal}.
+
+A segurança do DH clássico repousa sobre a dificuldade computacional do \textit{problema do logaritmo discreto}. O Protocolo Signal utiliza uma variante moderna denominada \textbf{ECDH} (\textit{Elliptic-Curve Diffie-Hellman}), que opera sobre grupos de pontos em curvas elípticas. O ECDH oferece o mesmo nível de segurança do DH tradicional com chaves significativamente menores, o que é essencial para dispositivos móveis com recursos de processamento e bateria limitados.
+
+\subsection{Funções de Derivação de Chaves (KDF)}
+
+Uma \textbf{Função de Derivação de Chaves} (KDF, do inglês \textit{Key Derivation Function}) é um componente criptográfico que, a partir de um material de entrada (como uma chave compartilhada obtida via ECDH), produz uma ou mais chaves com as propriedades estatísticas desejadas. O Protocolo Signal emprega especificamente o \textbf{HKDF} (\textit{HMAC-based Key Derivation Function}) \cite{perrin2016double}.
+
+A propriedade central explorada pelo protocolo é a \textbf{unidirecionalidade}: dado o resultado de uma KDF, é computacionalmente inviável reconstituir o material de entrada. Essa característica é o que permite ao Double Ratchet, detalhado na Seção~3, girar as chaves continuamente sem que estados anteriores sejam comprometidos.
+
+\subsection{Sigilo Perfeito Encaminhado (\textit{Forward Secrecy})}
+
+O \textbf{Sigilo Perfeito Encaminhado} (FS, do inglês \textit{Forward Secrecy}) garante que o comprometimento das chaves de longo prazo de um usuário não compromete as mensagens trocadas no passado \cite{cohn2017formal}. Para isso, o protocolo gera chaves de sessão \textit{efêmeras}, criadas para uso único e descartadas imediatamente após o uso.
+
+Um exemplo concreto ilustra a importância dessa propriedade: um adversário que registre todo o tráfego cifrado de um usuário durante anos, esperando obter sua chave privada, encontrará ao obtê-la apenas um conjunto de chaves efêmeras já descartadas e irrecuperáveis. As mensagens históricas permanecem inacessíveis.
+
+\subsection{Segurança Pós-Comprometimento (\textit{Post-Compromise Security})}
+
+Complementar ao \textit{Forward Secrecy}, a \textbf{Segurança Pós-Comprometimento} (PCS) endereça o cenário oposto: o que ocorre com as mensagens \textit{futuras} após um comprometimento? Em protocolos sem essa propriedade, um atacante que obtenha as chaves ativas de uma sessão pode continuar lendo todas as mensagens subsequentes indefinidamente \cite{cohn2017formal}.
+
+O Protocolo Signal resolve isso por meio da renovação contínua do material criptográfico a cada nova troca de mensagens. Mesmo que um atacante capture o estado completo de uma sessão em um dado instante, o protocolo ``se cura'' automaticamente nas próximas interações, tornando as mensagens futuras novamente opacas ao adversário. Essa é exatamente a propriedade que motivou o nome Axolotl, apresentada na Seção~1.
+
+\subsection{\textit{Sealed Sender}}
+
+O \textit{Sealed Sender} é uma propriedade presente no aplicativo Signal que vai além da proteção do conteúdo: ela oculta a identidade do \textbf{remetente} perante o próprio servidor. Em aplicativos de mensageria convencionais, o servidor precisa conhecer a origem de cada mensagem para roteá-la ao destinatário correto, gerando metadados de grafo social que revelam quem se comunica com quem. Com o \textit{Sealed Sender}, essa informação é cifrada junto com a mensagem, de modo que o servidor entrega o pacote ao destinatário sem ter acesso à identidade de quem o enviou. A ausência dessa técnica no WhatsApp é um dos pontos centrais analisados na Seção~4.

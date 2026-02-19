@@ -1,14 +1,16 @@
 
 \section{Introdução}
-\textcolor{red}{[MAX]}
-\textcolor{red}{[melhorar contextualização historica para o surgimento da criptografia ponta-aponta]}
-A segurança em comunicações digitais evoluiu de modelos baseados em criptografia de transporte (como TLS/SSL) para a Criptografia Ponta-a-Ponta (E2EE), onde nem mesmo o provedor do serviço tem acesso ao conteúdo. O protagonista dessa mudança é o Protocolo Signal.
+
+A comunicação sigilosa é uma necessidade humana tão antiga quanto a própria linguagem, mas o ambiente digital impôs desafios inéditos: uma mensagem enviada por um aplicativo pode trafegar por dezenas de servidores antes de chegar ao destinatário, e cada um desses pontos representa um potencial adversário. Durante anos, a solução predominante foi a criptografia de transporte, representada por protocolos como o TLS/SSL, que protege o canal entre o usuário e o servidor do serviço. Nesse modelo, o conteúdo das mensagens chega descriptografado ao provedor, que tem plena capacidade de lê-las, armazená-las ou entregá-las a terceiros \cite{antunes2018signal}.
+
+Em 2013, as revelações de Edward Snowden expuseram programas sistemáticos de vigilância conduzidos por agências de inteligência em parceria com grandes empresas de tecnologia, demonstrando que confiar no provedor como guardião das comunicações era uma premissa inadequada. Embora já existissem alternativas como o PGP (\textit{Pretty Good Privacy}), criado em 1991, seu uso exigia conhecimento técnico elevado e uma infraestrutura de gerenciamento de chaves que inviabilizava a adoção pelo público geral.
+
+A resposta a esse impasse veio com a Criptografia Ponta-a-Ponta (E2EE, do inglês \textit{End-to-End Encryption}), paradigma em que as mensagens são cifradas no dispositivo do remetente e decifradas exclusivamente no dispositivo do destinatário, sem que nenhum servidor intermediário tenha acesso ao conteúdo. O protagonista da adoção massiva desse modelo foi o \textbf{Protocolo Signal}, cuja solidez matemática foi formalmente verificada por análises independentes \cite{cohn2017formal}.
 
 \subsection{História e o Nome Axolotl}
-\textcolor{red}{[MAX]}
-\textcolor{red}{[melhorar explicação sobre a historia especifica do signal, deixe a historia mais direta e relacione o anfibio com o a auto-cura do protocolo (quem nem o cachorro do inferno no Kerberos)]}
-O protocolo foi desenvolvido pela \textit{Open Whisper Systems}, liderada por Moxie Marlinspike e Trevor Perrin. Inicialmente, o mecanismo central de criptografia não se chamava "Signal", mas sim \textbf{Axolotl}.
 
-O nome foi escolhido em homenagem ao axolote (\textit{Ambystoma mexicanum}), uma salamandra aquática conhecida por sua impressionante capacidade de auto-regeneração. Essa analogia biológica referia-se à propriedade de "auto-cura" (\textit{self-healing}) do protocolo: se uma chave de sessão for comprometida por um atacante, o algoritmo rotaciona as chaves automaticamente na próxima mensagem, "curando" a segurança da conversa e impedindo que o atacante decifre mensagens futuras \cite{perrin2016double}.
+O protocolo foi criado por Moxie Marlinspike e Trevor Perrin no âmbito da \textit{Open Whisper Systems}. A tecnologia estreou em 2013 no aplicativo \textit{TextSecure} como alternativa segura ao SMS. Em 2014, a organização firmou um acordo com o WhatsApp para integrar a biblioteca, estendendo a proteção a centenas de milhões de usuários de forma transparente \cite{marlinspike2016whatsapp}. Em 2016, o aplicativo \textit{Signal} reuniu toda a tecnologia sob uma única identidade.
 
-Em 2016, para simplificar a nomenclatura e evitar confusões de marcas registradas, o nome foi oficialmente alterado para \textbf{Signal Protocol}, unificando a marca do aplicativo e da tecnologia subjacente.
+O mecanismo central de criptografia recebeu inicialmente o nome \textbf{Axolotl}, em referência ao axolote (\textit{Ambystoma mexicanum}). A analogia é precisa: o axolote é um anfíbio com capacidade documentada de regenerar membros, órgãos e tecido nervoso perdidos. O protocolo possui propriedade equivalente. Se um atacante comprometer as chaves de uma sessão ativa, o algoritmo rotaciona todo o material criptográfico na próxima troca de mensagens, reestabelecendo a segurança da conversa automaticamente, sem qualquer intervenção do usuário \cite{perrin2016double}. Em 2016, o nome foi padronizado para \textbf{Protocolo Signal}, unificando a nomenclatura da tecnologia e do aplicativo que a popularizou.
+
+Este artigo está organizado da seguinte forma: a Seção~2 apresenta os conceitos criptográficos fundamentais para a compreensão do protocolo; a Seção~3 detalha seu funcionamento interno; a Seção~4 analisa implementações no WhatsApp e no Matrix; e a Seção~5 apresenta as considerações finais.
