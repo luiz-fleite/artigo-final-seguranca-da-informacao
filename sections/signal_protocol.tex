@@ -12,11 +12,6 @@ O coração do protocolo é o Double Ratchet (Catraca Dupla). Ele gerencia a rot
     \item \textbf{Symmetric-Key Ratchet (Hash):} Ocorre para cada mensagem enviada dentro da mesma sessão DH. Uma função de derivação de chaves (KDF) gera uma nova chave de mensagem a partir da anterior.
 \end{enumerate}
 
-\begin{figure}[ht]
-\centering
-% \includegraphics[width=0.8\textwidth]{double-ratchet-diagram.png}
-\caption{Diagrama conceitual do Double Ratchet: A KDF Chain deriva chaves de mensagem, enquanto o DH Ratchet atualiza a KDF Chain.}
-\label{fig:ratchet}
-\end{figure}
+% 
 
 Essa arquitetura garante que cada mensagem seja criptografada com uma chave única que nunca é reutilizada.
