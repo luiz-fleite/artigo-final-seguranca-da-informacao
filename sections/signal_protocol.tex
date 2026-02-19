@@ -3,7 +3,105 @@
 \textcolor{red}{[LA]}
 \textcolor{red}{[definir melhor os elementos necessarios para descrever o protocolo e, principalmente, fazer um diagrama do protocolo em funcionamento]} 
 O Protocolo Signal combina o algoritmo de acordo de chaves X3DH e o algoritmo Double Ratchet. O código é aberto e auditável, hospedado no GitHub da organização \textit{Signal Messenger}, dividido em bibliotecas para o protocolo (\texttt{libsignal}), clientes (Android, iOS e Desktop) e servidor.
+\section{O Protocolo Signal}
+\label{sec:signal_protocol}
 
+O Protocolo Signal não é um algoritmo monolítico, mas uma orquestração sofisticada de primitivas criptográficas projetadas para garantir confidencialidade, integridade e autenticidade em ambientes assíncronos. Diferente de protocolos anteriores como o OTR (\textit{Off-the-Record}), o Signal foi desenhado para funcionar em dispositivos móveis onde a conectividade é intermitente e múltiplos dispositivos podem estar associados a uma mesma identidade.
+
+O funcionamento do protocolo pode ser dividido em três fases críticas: a infraestrutura de pré-chaves (registro), o estabelecimento de sessão (X3DH) e a renovação contínua de chaves (Double Ratchet).
+
+\subsection{Infraestrutura de Chaves (Pre-Keys)}
+Para permitir que Alice envie uma mensagem segura para Bob mesmo que ele esteja \textit{offline}, o protocolo utiliza um modelo de publicação de chaves. Ao instalar o aplicativo, o cliente de Bob gera e envia ao servidor um conjunto de chaves públicas baseadas na curva elíptica Curve25519:
+
+\begin{itemize}
+    \item \textbf{Identity Key ($IK_B$):} Uma chave de longo prazo que identifica a conta de Bob (vinculada ao seu número de telefone).
+    \item \textbf{Signed Pre-Key ($SPK_B$):} Uma chave de médio prazo, assinada pela $IK_B$ para garantir autenticidade. É renovada periodicamente.
+    \item \textbf{One-Time Pre-Keys ($OPK_B$):} Um lote de chaves efêmeras (ex: 100 chaves). O servidor entrega uma dessas chaves para cada nova solicitação de conversa e a remove do banco de dados imediatamente.
+\end{itemize}
+
+O servidor atua apenas como um diretório de distribuição (\textit{Key Store}), sem nunca ter acesso às chaves privadas correspondentes.
+
+\subsection{Estabelecimento de Sessão: X3DH}
+O processo de "aperto de mão" inicial é denominado \textbf{X3DH} (\textit{Extended Triple Diffie-Hellman}). Quando Alice deseja iniciar uma conversa, ela obtém o pacote de pré-chaves de Bob e realiza cálculos locais para derivar um segredo compartilhado ($SK$).
+
+O X3DH combina chaves de longo prazo e efêmeras para garantir autenticação mútua e sigilo encaminhado desde a primeira mensagem. O segredo $SK$ é calculado através da concatenação dos resultados de quatro operações ECDH:
+
+\begin{equation}
+    SK = KDF(DH1 \ || \ DH2 \ || \ DH3 \ || \ DH4)
+\end{equation}
+
+Onde os componentes são definidos como:
+\begin{itemize}
+    \item $DH1 = DH(IK_A, SPK_B)$: Autenticação mútua e identificação.
+    \item $DH2 = DH(E_A, IK_B)$: Autenticação da chave efêmera de Alice.
+    \item $DH3 = DH(E_A, SPK_B)$: Combinação de chaves efêmeras e assinadas.
+    \item $DH4 = DH(E_A, OPK_B)$: Garante o sigilo perfeito encaminhado inicial.
+\end{itemize}
+
+Alice então apaga sua chave efêmera privada ($E_A$) e usa o $SK$ para inicializar o algoritmo Double Ratchet. Ela envia sua chave pública efêmera junto com a primeira mensagem cifrada para que Bob possa reproduzir o cálculo.
+
+\subsection{O Algoritmo Double Ratchet}
+Uma vez estabelecida a sessão, o protocolo utiliza o algoritmo \textbf{Double Ratchet} para atualizar as chaves a cada mensagem. O nome "Catraca" (\textit{Ratchet}) refere-se a um mecanismo que permite o avanço do estado criptográfico, mas impede sua reversão. O algoritmo combina dois tipos de catracas:
+
+\subsubsection{Ratchet Simétrico (Cadeia KDF)}
+Esta catraca avança a cada mensagem enviada ou recebida, garantindo que cada pacote de dados utilize uma chave única. O protocolo utiliza uma Função de Derivação de Chaves (KDF) baseada em HMAC-SHA256. A partir de uma \textit{Chain Key} ($CK_{i}$), o algoritmo deriva duas saídas:
+1. Uma \textbf{Message Key} ($MK_{i}$), usada exclusivamente para cifrar o conteúdo da mensagem atual.
+2. A próxima \textbf{Chain Key} ($CK_{i+1}$), que será usada na iteração seguinte.
+
+\begin{equation}
+    MK_i = KDF_{mk}(CK_i) \quad \text{e} \quad CK_{i+1} = KDF_{ck}(CK_i)
+\end{equation}
+
+Como a KDF é uma função unidirecional, mesmo que um atacante obtenha a chave $MK_i$, ele não consegue calcular as chaves anteriores ($MK_{i-1}$), garantindo o \textbf{Sigilo Perfeito Encaminhado}.
+
+\subsubsection{Ratchet Diffie-Hellman (Auto-Cura)}
+O Ratchet Simétrico protege o passado, mas é vulnerável se a \textit{Chain Key} atual for roubada. Para mitigar isso, o protocolo executa um novo ECDH sempre que a conversa muda de direção (ex: Bob responde Alice).
+
+As mensagens carregam novas chaves públicas efêmeras. Quando Bob responde, ele envia um novo valor DH público. Alice combina essa chave com sua chave privada para derivar uma nova "Raiz" de criptografia ($Root Key$). Isso reinicia as cadeias simétricas com entropia fresca, garantindo a \textbf{Segurança Pós-Comprometimento}.
+
+A Figura~\ref{fig:double_ratchet} ilustra a interação entre a Raiz (Root Key) e as cadeias de envio.
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.5cm and 2cm,
+        keynode/.style={circle, draw=black, thick, minimum size=1cm, align=center, font=\small},
+        msgnode/.style={rectangle, draw=black, fill=gray!10, minimum size=0.8cm, rounded corners},
+        arrow/.style={-Latex, thick}
+    ]
+
+    % Root Key Chain
+    \node[keynode, fill=blue!10] (RK1) {RK$_{1}$};
+    \node[keynode, fill=blue!10, right=of RK1] (RK2) {RK$_{2}$};
+    
+    % Sending Chain (Symmetric)
+    \node[keynode, fill=green!10, below=1cm of RK1] (CK1) {CK$_{1,0}$};
+    \node[keynode, fill=green!10, below=1cm of CK1] (CK2) {CK$_{1,1}$};
+    
+    % Message Keys
+    \node[msgnode, right=1cm of CK1] (MK1) {MK$_{0}$};
+    \node[msgnode, right=1cm of CK2] (MK2) {MK$_{1}$};
+
+    % Arrows Root Chain
+    \draw[arrow] (RK1) -- node[above] {\scriptsize DH Ratchet} (RK2);
+    \draw[arrow] (RK1) -- node[left] {\scriptsize KDF} (CK1);
+    
+    % Arrows Symmetric Chain
+    \draw[arrow] (CK1) -- node[above] {\scriptsize Output} (MK1);
+    \draw[arrow] (CK1) -- node[left] {\scriptsize KDF} (CK2);
+    \draw[arrow] (CK2) -- node[above] {\scriptsize Output} (MK2);
+    \draw[arrow, dashed] (CK2) -- +(0,-1) node[below] {\scriptsize Próxima CK};
+
+    % Labels
+    \node[above=0.2cm of RK1, font=\bfseries] {Cadeia Raiz (Diffie-Hellman)};
+    \node[left=0.2cm of CK1, font=\bfseries, rotate=90, anchor=south] {Cadeia de Envio (Simétrica)};
+
+    \end{tikzpicture}
+    \caption{Representação do Double Ratchet. A Cadeia Raiz (RK) é atualizada via Diffie-Hellman e alimenta a Cadeia de Envio (CK). A Cadeia de Envio gera chaves de mensagem (MK) individuais via KDF simétrico.}
+    \label{fig:double_ratchet}
+\end{figure}
+
+Em resumo, o Signal utiliza o X3DH para o acordo inicial e o Double Ratchet para manter a sessão segura indefinidamente, "cicatrizando" a segurança da conversa automaticamente após qualquer comprometimento temporário.
 \subsection{O Algoritmo Double Ratchet}
 O coração do protocolo é o Double Ratchet (Catraca Dupla). Ele gerencia a rotação contínua das chaves de criptografia de mensagens. O termo "catraca" implica que o processo avança em uma direção e não pode ser revertido (garantindo o \textit{Forward Secrecy}). O algoritmo utiliza duas camadas de derivação de chaves:
 
