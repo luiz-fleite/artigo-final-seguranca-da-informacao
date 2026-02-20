@@ -1,7 +1,6 @@
 \section{Estudos de Caso e Implementações}
 
 \subsection{WhatsApp: O Paradoxo do Código Fechado e a Implementação do Signal}
-\textcolor{red}{[WESLEY]}
 O WhatsApp é a implementação mais popular do Protocolo Signal. Embora o protocolo original seja licenciado sob a GPLv3 (que exigiria que softwares derivados também fossem de código aberto), o WhatsApp mantém seu código fechado de forma proprietária. Isso foi viabilizado por um acordo comercial firmado em 2014 com a Open Whisper Systems, permitindo a integração da biblioteca \textit{libsignal} em sua infraestrutura antes que as obrigações estritas da GPL fossem aplicadas à sua base de código final \cite{marlinspike2016whatsapp}.
 
 O fato de o aplicativo ser de código fechado (\textit{closed-source}) cria um paradoxo técnico. Enquanto o Protocolo Signal é de código aberto e possui sua matemática amplamente auditada pela comunidade de segurança, a sua implementação no WhatsApp exige confiança na Meta de que o aplicativo não possui "portas dos fundos" (\textit{backdoors}) projetadas para copiar mensagens antes da etapa de criptografia. Embora auditorias independentes atestem a integridade da criptografia de conteúdo da plataforma, essa arquitetura fechada serve diretamente ao modelo de negócios da empresa.
