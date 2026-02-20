@@ -7,7 +7,11 @@ O WhatsApp é a implementação mais popular do Protocolo Signal. Embora o proto
 O fato de o aplicativo ser de código fechado (\textit{closed-source}) cria um paradoxo técnico. Enquanto o Protocolo Signal é de código aberto e possui sua matemática amplamente auditada pela comunidade de segurança, a sua implementação no WhatsApp exige confiança na Meta de que o aplicativo não possui "portas dos fundos" (\textit{backdoors}) projetadas para copiar mensagens antes da etapa de criptografia. Embora auditorias independentes atestem a integridade da criptografia de conteúdo da plataforma, essa arquitetura fechada serve diretamente ao modelo de negócios da empresa.
 
 \subsubsection{A Engenharia de Implementação do Signal no WhatsApp}
-Para atender a bilhões de usuários sem comprometer a eficiência dos dispositivos móveis ou consumir excessivamente a largura de banda, o WhatsApp realiza adaptações estruturais no uso do Signal. A arquitetura técnica resolve problemas práticos de comunicação assíncrona, transferência de arquivos pesados e escalabilidade em grupos:
+Para atender a bilhões de usuários sem comprometer a eficiência dos dispositivos móveis ou consumir excessivamente a largura de banda, o WhatsApp realiza adaptações estruturais no uso do Signal. A arquitetura técnica resolve problemas práticos de comunicação assíncrona, transferência de arquivos pesados e escalabilidade em grupos.
+
+Devido à natureza de código fechado do aplicativo, a compreensão exata de como essas adaptações funcionam requer técnicas de engenharia reversa. Conforme demonstrado por Antunes e Kowada \cite{antunes2018signal}, que utilizaram injeção dinâmica de código (via ferramenta FRIDA) para interceptar e depurar a comunicação em dispositivos Android, o WhatsApp implementa a matemática do Signal de forma íntegra. O estudo empírico revelou que as chaves e os textos cifrados são empacotados em estruturas de classes específicas (como \textit{Signal Message} e \textit{Pre Key Signal Message}) e transmitidos aos servidores por meio do \textit{FunXMPP}, uma variação altamente otimizada do protocolo XMPP que utiliza dicionários de bytes para comprimir requisições e economizar dados móveis \cite{antunes2018signal}. 
+
+A partir dessas constatações práticas, é possível detalhar o funcionamento dos seguintes mecanismos:
 
 \paragraph{O Repositório de Chaves (Servidor)}
 O servidor do WhatsApp atua como um intermediário na troca de chaves, comparável a um "cartório digital". Para o funcionamento do protocolo X3DH (necessário para o envio de mensagens a usuários \textit{offline}), o servidor armazena as chaves públicas dos usuários: a Chave de Identidade, uma Chave Pré-assinada e lotes de Chaves de Uso Único. Ao iniciar uma conversa, o servidor entrega ao remetente uma Chave de Uso Único do destinatário e a descarta. O servidor facilita o encontro das chaves públicas, mas não possui acesso às chaves privadas, que permanecem restritas aos dispositivos.
@@ -48,7 +52,7 @@ A distinção entre o sigilo do conteúdo e a exposição do comportamento torna
 
 O texto das mensagens, áudios, fotos e vídeos nunca pôde ser entregue, pois os servidores armazenam apenas códigos ilegíveis. Antes das integrações mais profundas da Meta, as informações fornecidas à justiça limitavam-se a dados cadastrais básicos (número de telefone, \textit{last seen} e endereço IP). 
 
-No cenário atual, a riqueza dos metadados permite a entrega de informações táticas fundamentais. A Meta pode fornecer a teia de contatos do investigado (volume e registros de mensagens), dados de grupos (informações de todos os membros associados) e vínculos sociais com perfis do Facebook e Instagram. Consequentemente, mesmo sem acesso ao teor das conversas, as autoridades conseguem mapear de forma cristalina a rede de relacionamentos de uma investigação.
+No cenário atual, a riqueza dos metadados permite a entrega de informações táticas fundamentais. A Meta pode fornecer a teia de contatos do investigado (frequência e registros de mensagens), dados de grupos (informações de todos os membros associados) e vínculos sociais com perfis do Facebook e Instagram. Consequentemente, mesmo sem acesso ao teor das conversas, as autoridades conseguem mapear de forma cristalina a rede de relacionamentos de uma investigação.
 
 \subsection{Matrix e Olm/Megolm}
 \textcolor{red}{[LA - WESLEY]}
