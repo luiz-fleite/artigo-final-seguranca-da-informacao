@@ -53,13 +53,12 @@ O texto das mensagens, áudios, fotos e vídeos nunca pôde ser entregue, pois o
 
 No cenário atual, a riqueza dos metadados permite a entrega de informações táticas fundamentais. A Meta pode fornecer a teia de contatos do investigado (frequência e registros de mensagens), dados de grupos (informações de todos os membros associados) e vínculos sociais com perfis do Facebook e Instagram. Consequentemente, mesmo sem acesso ao teor das conversas, as autoridades conseguem mapear de forma cristalina a rede de relacionamentos de uma investigação.
 
-\subsection{Matrix e Olm/Megolm}
-\textcolor{red}{[LA - WESLEY]}
-\textcolor{red}{[aqui é bom fazer uma menção honrosa para essa implementação promissora do signal pela Matrix...]}
-O Matrix é um padrão aberto para comunicação descentralizada e federada. Diferente do Signal (que é centralizado), o Matrix permite que servidores diferentes conversem entre si.
+\subsection{Matrix: Adaptação Federada com Olm e Megolm}
 
-Para garantir segurança nesse ambiente, o Matrix desenvolveu a biblioteca \textbf{Olm}. Olm é uma implementação do algoritmo Double Ratchet do Signal, escrita em C++ e adaptada para a arquitetura do Matrix.
+O Matrix difere do modelo centralizado do Signal ao propor um padrão aberto para comunicação federada, onde servidores distintos interagem em tempo real. A segurança nesse ambiente distribuído é gerida por dois algoritmos complementares, auditados formalmente por \cite{ungerman2018security}: o \textbf{Olm} e o \textbf{Megolm}.
 
-No entanto, o algoritmo original do Signal é "pesado" para grupos grandes (complexidade $O(N^2)$), pois exige o estabelecimento de sessões individuais par-a-par. Para resolver isso, o Matrix introduziu o \textbf{Megolm}. O Megolm sacrifica a propriedade de "auto-cura" imediata em troca de escalabilidade massiva para grupos com milhares de usuários.
+O \textbf{Olm} é uma implementação estrita do \textit{Double Ratchet} descrita anteriormente, utilizada para estabelecer canais seguros 1:1 entre dispositivos. No entanto, replicar sessões \textit{pairwise} (par-a-par) em grupos massivos gera uma complexidade de mensagens $O(N^2)$, tornando o protocolo original do Signal inviável para salas com milhares de participantes.
 
-No Megolm, cada participante cria uma sessão de saída ("outbound") e compartilha a chave da catraca com os outros participantes via canais seguros Olm \cite{matrix_spec}. Isso permite criptografia eficiente em ambientes federados sem quebrar as propriedades fundamentais de confidencialidade.
+Para resolver o problema da escalabilidade, o Matrix introduziu o \textbf{Megolm}. Neste mecanismo, cada participante inicializa uma única "sessão de saída" (\textit{outbound session}) baseada em um \textit{ratchet} unidirecional. A semente inicial desta catraca é compartilhada com os demais membros do grupo através dos canais seguros Olm.
+
+A partir desse estabelecimento, o remetente deriva novas chaves localmente para cada mensagem enviada, reduzindo a complexidade de transmissão para $O(N)$. A compensação técnica necessária para essa eficiência é o enfraquecimento da \textit{Segurança Pós-Comprometimento}: ao contrário do Signal, o Megolm não executa a "auto-cura" (rotação via Diffie-Hellman) a cada mensagem. A recuperação do sigilo após um comprometimento depende da rotação periódica da sessão completa, configurável pelo cliente ou servidor \cite{matrix_spec}.
